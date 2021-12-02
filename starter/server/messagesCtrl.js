@@ -1,12 +1,5 @@
 const chats = [];
-
-/*
-    chats example object
-    {
-        pin: 123
-        messages: ['hello', 'hi there']
-    }
-*/
+const bcrypt = require('bcryptjs')
 
 module.exports = {
     createMessage: (req, res) => {
@@ -14,20 +7,30 @@ module.exports = {
         const {pin, message} = req.body;
 
         for (let i = 0; i < chats.length; i++) {
-            if (pin === chats[i].pin) {
+            const existing = bcrypt.compareSync(pin, chats[i].pinHash);
+            if (existing) {
                 chats[i].messages.push(message);
-                res.status(200).send(chatObj);
+
+                const messagesToReturn = {...chats[i]};
+                delete messagesToReturn.pinHash;
+                res.status(200).send(messagesToReturn);
                 return;
             }
         }
 
+        let salt = bcrypt.genSaltSync(5);
+
+        let pinHash = bcrypt.hashSync(pin, salt);
+
         let chatObj = {
-            pin,
+            pinHash,
             messages: [message]
         }
 
         chats.push(chatObj);
-        console.log(chats);
+
+        let messagesToReturn = {...chatObj};
+        delete messagesToReturn.pinHash;
         res.status(200).send(chatObj);
     }
 }
